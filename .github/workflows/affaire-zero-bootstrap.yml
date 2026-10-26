@@ -1,0 +1,80 @@
+name: Affaire Zero · GitHub mobile bootstrap
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "First request a Unity activation file; after setting UNITY_LICENSE, build the APK."
+        type: choice
+        required: true
+        default: request-license
+        options:
+          - request-license
+          - build-apk
+
+permissions:
+  contents: read
+
+jobs:
+  request-license:
+    if: inputs.task == 'request-license'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Request Unity activation file
+        id: activation
+        uses: game-ci/unity-request-activation-file@v2
+      - name: Upload activation file
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unity-activation-file
+          path: ${{ steps.activation.outputs.filePath }}
+          retention-days: 1
+
+  build-apk:
+    if: inputs.task == 'build-apk'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract Unity project archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f Affaire_Zero_Unity_Project.zip || { echo "Upload Affaire_Zero_Unity_Project.zip to the repository root first."; exit 1; }
+          mkdir -p _source
+          unzip -q Affaire_Zero_Unity_Project.zip -d _source
+          test -f _source/affaire-zero/Assets/Editor/AndroidBuild.cs || { echo "ZIP layout is not the expected Affaire Zero Unity project archive."; exit 1; }
+
+      - name: Cache Unity import artifacts
+        uses: actions/cache@v4
+        with:
+          path: _source/affaire-zero/Library
+          key: unity-library-${{ runner.os }}-6000.3.27f1-${{ hashFiles('Affaire_Zero_Unity_Project.zip') }}
+          restore-keys: |
+            unity-library-${{ runner.os }}-6000.3.27f1-
+
+      - name: Build Android APK with Unity 6.3 LTS
+        uses: game-ci/unity-builder@v4
+        env:
+          UNITY_LICENSE: ${{ secrets.UNITY_LICENSE }}
+          UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
+          UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
+        with:
+          projectPath: _source/affaire-zero
+          unityVersion: 6000.3.27f1
+          targetPlatform: Android
+          buildMethod: AffaireZero.Editor.AndroidBuild.BuildAndroid
+          allowDirtyBuild: true
+
+      - name: Upload APK and build report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AffaireZero-Android-${{ github.run_number }}
+          path: |
+            _source/affaire-zero/BuildOutput/Android/AffaireZero.apk
+            _source/affaire-zero/BuildOutput/Android/BuildReport.txt
+          if-no-files-found: warn
+          retention-days: 14
