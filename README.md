@@ -1,32 +1,19 @@
-# Affaire Zéro — Godot 4
+# Affaire Zéro — Godot 4 / Android
 
-Premier prototype jouable d'enquête 3D pour Android. Le projet est conçu pour être compilé par GitHub Actions sans licence moteur payante.
+A 3D investigation vertical slice built with Godot 4 and GDScript. This repository includes the game source and its GitHub Actions workflow.
 
-## Contenu
+## Build an Android test APK from a phone
 
-- Exploration 3D low-poly générée à l'exécution (aucun asset externe requis).
-- Contrôles tactiles : glisser sur le côté gauche pour avancer/se déplacer, glisser à droite pour regarder ; bouton Inspecter pour examiner un indice proche. Sur ordinateur : WASD/flèches et bouton Inspecter.
-- Huit indices, trois suspects, un puzzle de trappe chronologique, conclusion fondée sur les preuves et trois niveaux d'indices.
-- Interface anglais/arabe avec choix mémorisé, progression locale hors ligne.
-- Workflow `.github/workflows/android-apk.yml` qui produit un APK de test signé debug comme artefact GitHub Actions.
+1. Extract this ZIP on GitHub so that `project.godot` and `.github/` are at the repository root (not inside another nested folder).
+2. In the GitHub repository, open **Actions** and enable workflows if GitHub asks.
+3. Select **Affaire Zero - Godot Android APK** → **Run workflow** → **Run workflow**.
+4. Open the completed run and download `AffaireZero-Android-APK` to install the debug APK. Download `AffaireZero-Build-Logs` if the build fails.
 
-## Obtenir l'APK depuis un téléphone
+The workflow uses Godot 4.4.1 via `barichello/godot-ci:4.4.1`, validates/imports the project, runs a short headless smoke test, exports a debug-signed APK, and uploads logs even when a step fails.
 
-1. Crée un dépôt GitHub vide nommé `Affaire-Zero`.
-2. Télécharge cette archive ZIP sur ton téléphone et extrais-la avec le gestionnaire de fichiers **ou** téléverse le ZIP dans ton dépôt puis utilise le navigateur GitHub pour extraire les fichiers dans le dépôt. GitHub n'exécute pas un workflow qui reste à l'intérieur d'un ZIP : `project.godot` et `.github/workflows/android-apk.yml` doivent être à la racine du dépôt.
-3. Vérifie que le dépôt contient `project.godot`, `scenes/`, `scripts/` et `.github/workflows/android-apk.yml`.
-4. Ouvre l'onglet Actions et lance **Affaire Zero - Godot Android APK** avec **Run workflow**. Le workflow se déclenche aussi lors d'un push de fichiers du projet sur `main`.
-5. À la fin, ouvre le run réussi, section Artifacts, et télécharge `AffaireZero-Android-APK`. Décompresse l'artefact si GitHub le fournit en ZIP ; installe `AffaireZero.apk` sur Android. Autorise temporairement l'installation depuis cette source si Android le demande.
+## Notes
 
-## Notes techniques
-
-- Moteur : Godot 4.4.1, rendu `gl_compatibility` pour compatibilité mobile.
-- Le workflow utilise `barichello/godot-ci:4.4.1`, qui fournit Godot, les templates d'export et les outils Android.
-- APK debug pour test local uniquement ; pas destiné à Google Play.
-- Pas d'achats intégrés dans cette première tranche.
-- Les modèles 3D sont des formes simples créées par code : le jeu est un prototype fonctionnel de mécanique, pas encore un rendu photoréaliste.
-- La scène et le script doivent encore être testés sur appareil réel ; un build vert ne remplace pas le test tactile et la validation de gameplay.
-
-## Dépannage
-
-Si l'action échoue, ouvre le run dans GitHub Actions et copie les 30 à 50 dernières lignes de l'étape rouge. Ne partage jamais de mots de passe ou de clés privées.
+- This is a development prototype / vertical slice, not yet a commercial release candidate.
+- The generated APK is debug-signed for local testing, not Play Store publication.
+- Do not commit production signing keys or passwords.
+- The first CI run may fail if the Godot Android export templates or Android SDK components are missing in the container. Review the uploaded logs; do not assume an APK exists unless the APK artifact is uploaded.

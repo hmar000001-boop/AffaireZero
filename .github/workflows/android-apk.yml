@@ -5,9 +5,10 @@ on:
   push:
     branches: [main]
     paths:
-      - '**.gd'
-      - '**.tscn'
-      - '**.tres'
+      - '**/*.gd'
+      - '**/*.tscn'
+      - '**/*.tres'
+      - '**/*.svg'
       - 'project.godot'
       - 'export_presets.cfg'
       - '.github/workflows/android-apk.yml'
@@ -32,12 +33,46 @@ jobs:
           mkdir -p build
 
       - name: Import project and validate scripts
-        run: godot --headless --editor --path . --quit
+        run: |
+          set -o pipefail
+          godot --headless --editor --path . --quit 2>&1 | tee build/godot-import.log
+
+      - name: Smoke test main scene
+        run: |
+          set -o pipefail
+          godot --headless --path . --quit-after 3 2>&1 | tee build/godot-smoke-test.log
+
+      - name: Create temporary debug signing key
+        run: |
+          mkdir -p "$HOME/.android"
+          rm -f "$HOME/.android/debug.keystore"
+          keytool -genkeypair -keystore "$HOME/.android/debug.keystore" \
+            -storepass android -alias androiddebugkey -keypass android \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Android Debug,O=Android,C=US"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PATH=$HOME/.android/debug.keystore" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_USER=androiddebugkey" >> "$GITHUB_ENV"
+          echo "GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD=android" >> "$GITHUB_ENV"
 
       - name: Export debug APK
-        run: godot --headless --path . --export-debug "Android" build/AffaireZero.apk
+        run: |
+          set -o pipefail
+          godot --headless --path . --export-debug "Android" build/AffaireZero.apk 2>&1 | tee build/godot-export.log
 
-      - name: Upload APK
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AffaireZero-Build-Logs
+          path: |
+            build/godot-import.log
+            build/godot-smoke-test.log
+            build/godot-export.log
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload test APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: AffaireZero-Android-APK
